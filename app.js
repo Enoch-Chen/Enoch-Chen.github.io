@@ -62,7 +62,7 @@ function serializeCSV(rows, fields) {
     if (typeof value === "string" && /^[\s]*[=+\-@\t\r]/.test(text)) text = "'" + text;
     return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
   };
-  return "\uFEFF" + [fields.join(","), ...rows.map(r => fields.map(f => cell(r[f])).join(","))].join("\r\n");
+  return "\uFEFF" + [fields.map(cell).join(","), ...rows.map(r => fields.map(f => cell(r[f])).join(","))].join("\r\n");
 }
 const mean = values => values.reduce((a, b) => a + b, 0) / values.length;
 const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -218,6 +218,7 @@ if (typeof document !== "undefined") {
       setupFilters(); updateNotice(curves.status === "rejected" ? `训练日志未加载：${curves.reason.message}` : orphanCount ? `已忽略 ${orphanCount} 条未关联实验的训练记录。` : ""); render();
     } catch (error) {
       $("notice").className = "notice error";
+      if (!state.rows.length) $("source-label").textContent = "数据未加载";
       $("notice").textContent = `加载失败：${error.message} 请通过本地 HTTP 服务或 GitHub Pages 打开页面，也可点击「导入 CSV」。${state.rows.length ? " 当前保留上一次已加载的数据。" : ""}`;
       render();
     } finally { if (request === state.request) [$("real-mode"), $("demo-mode"), $("reload-data")].forEach(b => b.disabled = false); }

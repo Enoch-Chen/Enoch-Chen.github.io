@@ -1,0 +1,25 @@
+experiment_id,dataset,stain,model,version,ssim,psnr,fid,source,notes
+EXP-001,MIST,待确认,MDCL,原脚本,,,32.0328,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-002,MIST,待确认,MDCL + CCSDG,原脚本,,,31.4190,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-003,MIST,待确认,PGVMS,官方 checkpoint,,,33.5598,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-004,MIST,待确认,USIGAN,官方 checkpoint,,,27.5645,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-005,M_ACRBOAT,待确认,MDCL,原脚本,,,42.0822,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-006,M_ACRBOAT,待确认,MDCL + CCSDG,原脚本,,,37.0655,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-007,M_ACRBOAT,待确认,PGVMS,官方 checkpoint,,,37.4020,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-008,M_ACRBOAT,待确认,USIGAN,官方 checkpoint,,,43.2820,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-009,M_ANHIR,待确认,MDCL,原脚本,,,60.6024,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-010,M_ANHIR,待确认,MDCL + CCSDG,原脚本,,,48.7853,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-011,M_ANHIR,待确认,PGVMS,官方 checkpoint,,,43.2416,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-012,M_ANHIR,待确认,USIGAN,官方 checkpoint,,,35.8422,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-013,M_BCI,待确认,MDCL,原脚本,,,47.4748,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-014,M_BCI,待确认,MDCL + CCSDG,原脚本,,,34.0456,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-015,M_BCI,待确认,PGVMS,官方 checkpoint,,,40.1395,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-016,M_BCI,待确认,USIGAN,官方 checkpoint,,,48.1435,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-017,M_IHC4BC,待确认,MDCL,原脚本,,,47.5187,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-018,M_IHC4BC,待确认,MDCL + CCSDG,原脚本,,,39.0463,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-019,M_IHC4BC,待确认,PGVMS,官方 checkpoint,,,34.7128,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-020,M_IHC4BC,待确认,USIGAN,官方 checkpoint,,,34.1959,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-021,M_Tianjin,待确认,MDCL,原脚本,,,41.6456,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-022,M_Tianjin,待确认,MDCL + CCSDG,原脚本,,,38.0933,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-023,M_Tianjin,待确认,PGVMS,官方 checkpoint,,,32.4651,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
+EXP-024,M_Tianjin,待确认,USIGAN,官方 checkpoint,,,52.6761,draw_figure.py,当前有效数组；图表标题 Ki67 FID 与输出 ER FID.html 冲突，染色待确认；版本为来源标签，实际实验版本未提供。
