@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#163d32">
+  <meta name="description" content="H&E 到 IHC 虚拟染色实验指标、模型对比与训练曲线。">
+  <title>StainLab · 实验指标看板</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#overview" aria-label="StainLab 首页"><span class="brand-mark">s<span>✦</span></span><span>StainLab<small>EXPERIMENT WORKSPACE</small></span></a>
+    <div class="workspace"><span class="workspace-icon">H</span><div>虚拟染色研究<small>H&E → IHC</small></div><span class="workspace-dot"></span></div>
+    <div class="nav-label">WORKSPACE</div>
+    <nav aria-label="主要导航">
+      <a class="active" href="#overview"><span>▦</span>实验概览<span class="nav-arrow">↗</span></a>
+      <a href="#comparison"><span>▥</span>模型对比</a>
+      <a href="#experiments"><span>☷</span>实验记录</a>
+      <a href="#training"><span>⌁</span>训练曲线</a>
+      <a href="#data-guide"><span>▤</span>数据说明</a>
+    </nav>
+    <div class="sidebar-note"><span class="note-icon">✧</span><strong>让每一次实验，都有迹可循。</strong><p>从实验数据到研究洞察，<br>在一个工作空间里完成。</p><a href="#data-guide">了解数据格式 <span>↗</span></a></div>
+    <div class="profile"><span class="avatar">EC</span><div>Enoch Chen<small>Research workspace</small></div><span class="profile-status"></span></div>
+  </aside>
+  <main>
+    <header class="topbar"><div>工作空间 <span>/</span> <strong>实验概览</strong></div><span class="local-status"><i></i> CSV 数据驱动</span></header>
+    <div class="page-content">
+      <section id="overview" class="page-heading"><div><div class="eyebrow">VIRTUAL STAINING · EXPERIMENT TRACKER</div><h1>实验指标看板<span class="heading-dot">.</span></h1><p>连接实验与洞察，探索 H&E → IHC 的每一步进展。</p></div><div class="heading-actions"><button class="button" id="import-results">↥ 导入 CSV</button><button class="button primary" id="export-results">↓ 导出结果</button></div></section>
+      <div class="data-toolbar"><div class="data-switch" role="group" aria-label="数据来源"><button id="real-mode" class="selected" aria-pressed="true">实验数据</button><button id="demo-mode" aria-pressed="false">演示数据</button></div><span id="source-label">正在读取 results.csv…</span><button class="text-button" id="reload-data">↻ 重新读取</button></div>
+      <div id="notice" class="notice" role="status" aria-live="polite">正在加载实验数据…</div>
+      <section class="stats" aria-label="当前筛选统计">
+        <article class="stat-card"><div class="stat-label">实验记录 <span>▦</span></div><div class="stat-value" id="stat-count">—</div><div class="stat-caption" id="stat-coverage">等待数据</div><div class="stat-decoration bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+        <article class="stat-card"><div class="stat-label">最佳 SSIM <span class="direction">↑ 越高越好</span></div><div class="stat-value" id="stat-ssim">—</div><div class="stat-caption" id="best-ssim">等待数据</div></article>
+        <article class="stat-card"><div class="stat-label">最佳 PSNR <span class="direction">↑ 越高越好</span></div><div class="stat-value"><span id="stat-psnr">—</span><small>dB</small></div><div class="stat-caption" id="best-psnr">等待数据</div></article>
+        <article class="stat-card accent-card"><div class="stat-label">最佳 FID <span class="direction">↓ 越低越好</span></div><div class="stat-value" id="stat-fid">—</div><div class="stat-caption" id="best-fid">等待数据</div></article>
+      </section>
+      <section class="filters card" aria-label="实验筛选"><div class="filter-title">☷ <strong>筛选实验</strong></div><label>数据集<select id="filter-dataset"><option value="">全部数据集</option></select></label><label>染色类型<select id="filter-stain"><option value="">全部染色</option></select></label><label>模型<select id="filter-model"><option value="">全部模型</option></select></label><label>实验版本<select id="filter-version"><option value="">全部版本</option></select></label><button class="text-button reset-button" id="reset-filters">重置筛选</button></section>
+      <div class="chart-grid">
+        <section class="card comparison-card" id="comparison"><div class="card-heading"><div><h2>模型指标对比 <span class="pill">COMPARISON</span></h2><p id="comparison-description">同一数据集与染色内，比较不同模型的表现</p></div><div class="metric-tabs" role="group" aria-label="对比指标"><button data-metric="fid" class="selected" aria-pressed="true">FID ↓</button><button data-metric="ssim" aria-pressed="false">SSIM ↑</button><button data-metric="psnr" aria-pressed="false">PSNR ↑</button></div></div><div id="comparison-legend" class="legend"></div><div id="comparison-chart" class="comparison-chart"></div><div class="chart-footnote">以数据集 × 染色分组；同模型同版本的多次记录取均值。悬停柱形查看数值。</div></section>
+        <section class="card insight-card"><div class="card-heading"><div><h2>模块带来的变化 <span class="sparkle">✧</span></h2><p>MDCL + CCSDG vs. MDCL</p></div></div><div class="insight-metric"><span id="improvement-value">—</span><small id="improvement-label">配对 FID 相对改善</small></div><div id="improvement-chart" class="improvement-chart"></div><div class="insight-note" id="improvement-note">只比较相同数据集、染色和版本的记录。</div></section>
+      </div>
+      <section class="card experiments-card" id="experiments"><div class="card-heading"><div><h2>实验记录 <span class="count-badge" id="table-count">0</span></h2><p>每一次迭代，都值得被记录。</p></div><label class="search-field"><span>⌕</span><input id="search" type="search" aria-label="搜索实验" placeholder="搜索模型、实验 ID、备注…"></label></div><div class="table-scroll"><table><thead><tr><th scope="col" aria-sort="none"><button data-sort="experiment_id">实验 ID ↕</button></th><th scope="col" aria-sort="none"><button data-sort="model">模型 / 版本 ↕</button></th><th scope="col" aria-sort="none"><button data-sort="dataset">数据集 ↕</button></th><th scope="col" aria-sort="none"><button data-sort="stain">染色 ↕</button></th><th scope="col" class="numeric" aria-sort="none"><button data-sort="ssim">SSIM ↑</button></th><th scope="col" class="numeric" aria-sort="none"><button data-sort="psnr">PSNR ↑</button></th><th scope="col" class="numeric" aria-sort="ascending"><button data-sort="fid">FID ↓</button></th><th scope="col">数据来源</th></tr></thead><tbody id="results-body"></tbody></table></div><div class="table-footer"><span id="table-summary">正在加载…</span><span>点击列标题排序 <span class="muted">·</span> — 表示未提供</span></div></section>
+      <section class="card training-card" id="training"><div class="card-heading"><div><h2>训练曲线 <span class="pill">TRAINING</span></h2><p>跟踪每个 epoch 的收敛情况与验证表现。</p></div><button class="button small" id="import-curves">↥ 导入训练 CSV</button></div><div class="training-controls"><label>实验<select id="training-experiment" aria-label="训练实验"></select></label><label>曲线<select id="training-metric" aria-label="训练指标"><option value="loss">Training loss ↓</option><option value="val_ssim">Validation SSIM ↑</option><option value="val_psnr">Validation PSNR ↑</option><option value="val_fid">Validation FID ↓</option></select></label><span id="curve-caption"></span></div><div id="training-chart" class="training-chart"></div></section>
+      <section id="data-guide" class="data-guide"><div class="guide-icon">▤</div><div><h2>更新数据，更新你的实验看板。</h2><p>指标保存在 <code>results.csv</code>，训练日志保存在 <code>training.csv</code>。更新并提交到 GitHub，网站即可读取新结果。导入功能仅在当前浏览器会话预览。</p><details><summary>查看 CSV 格式与指标说明</summary><p>实验表必需字段：<code>experiment_id,dataset,stain,model,version,ssim,psnr,fid</code>；可选字段：<code>source,notes</code>。每行一个实验，ID 不可重复，缺失指标留空。SSIM 范围为 −1～1，PSNR 单位 dB，FID 不小于 0。</p><p>训练表字段：<code>experiment_id,epoch,loss,val_ssim,val_psnr,val_fid</code>。用 experiment_id 关联实验，epoch 为非负整数；同一实验的 epoch 不可重复，缺失指标留空。选择训练指标后，缺失点会显示为曲线断点。</p><p>顶部最佳值仅描述当前筛选范围，不代表跨数据集模型排名。模块变化为各配对分组相对变化的算术平均；它不表示统计显著性。</p><a href="./results.csv" download>下载实验 CSV ↗</a><a href="./training.csv" download>下载训练模板 ↗</a><a href="./demo-results.csv" download>下载完整示例 ↗</a></details></div><span class="guide-tag">JUST ADD DATA ↗</span></section>
+      <footer><span><strong>StainLab</strong> <span class="muted">/</span> H&E → IHC Research Workspace</span><span>Built for better experiments <span class="footer-flower">✳</span></span></footer>
+    </div>
+  </main>
+  <input type="file" id="results-file" accept=".csv,text/csv" hidden><input type="file" id="curves-file" accept=".csv,text/csv" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="noscript">请启用 JavaScript，以读取实验数据并展示交互图表。</p></noscript>
+</body>
+</html>
