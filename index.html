@@ -27,7 +27,7 @@
       <div class="card-heading">
         <div>
           <h2>模型对比</h2>
-          <p id="comparison-description">同一数据集与染色内比较</p>
+          <p id="comparison-description">查看各模型的指标</p>
         </div>
         <div class="chart-controls">
           <div class="metric-tabs" role="group" aria-label="对比指标">
@@ -45,10 +45,11 @@
       <span id="chart-hint" class="visually-hidden"></span>
       <div id="comparison-legend" class="legend" role="group" aria-label="显示或隐藏模型"></div>
       <div id="comparison-chart" class="comparison-chart" aria-live="polite"></div>
-      <div id="chart-footnote" class="chart-footnote">按数据集 × 染色分组；同模型同版本的多次结果取均值。悬停柱形查看数值。</div>
+      <div id="chart-footnote" class="chart-footnote">同模型的多次结果取均值。悬停柱形查看数值。</div>
     </section>
   </main>
   <input type="file" id="results-file" accept=".csv,text/csv" hidden>
+  <div id="chart-tooltip" class="chart-tooltip" role="tooltip" hidden></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <noscript><p class="noscript">请启用 JavaScript，以读取实验数据并展示模型对比图。</p></noscript>
 </body>

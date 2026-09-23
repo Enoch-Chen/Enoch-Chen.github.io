@@ -44,7 +44,7 @@ function validateCSV(text) {
   return rows.map((source, index) => {
     const row = { ...source };
     const fail = message => { throw new Error(`第 ${index + 2} 条记录：${message}`); };
-    for (const field of RESULT_FIELDS.slice(0, 5)) {
+    for (const field of ["experiment_id", "dataset", "model"]) {
       if (!row[field]) fail(`${field} 不可为空。`);
     }
     for (const field of RESULT_FIELDS.slice(5)) {
@@ -117,20 +117,24 @@ function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index
   const format = v => v == null ? '—' : v.toFixed(METRICS[metric].digits);
   const tooltip = (si, gi) => {
     const cell = cells[si][gi], group = groups[gi], model = series[si];
-    return `${group.dataset} · ${group.stain} / ${model.model} · ${model.version} / ${label}: ${format(cell.value)}${cell.value == null ? '（未提供）' : ` (n=${cell.count})`}`;
+    const groupName = [group.dataset, group.stain].filter(Boolean).join(' · ');
+    const modelName = [model.model, model.version].filter(Boolean).join(' · ');
+    return `${groupName} / ${modelName} / ${label}: ${format(cell.value)}${cell.value == null ? '（未提供）' : ` (n=${cell.count})`}`;
   };
   const viewLabel = { bar: '柱状图', line: '折线图', tile: '平铺热力图' }[view];
   if (view === 'tile') {
     const left = 190, top = 65, cellW = 126, cellH = 70;
     const w = left + groups.length * cellW + 18, h = top + series.length * cellH + 18;
-    let svg = `<svg class="chart-svg tile-svg" style="min-width:${w}px" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label} 模型对比${viewLabel}"><title>每格展示指标均值；每列独立比较，深绿色表示该数据集和染色下表现更好；灰色为缺失值。</title>`;
+    let svg = `<svg class="chart-svg tile-svg" style="min-width:${w}px" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label} 模型对比${viewLabel}"><title>每格展示指标均值；深绿色表示表现更好，灰色为缺失值。</title>`;
     groups.forEach((group, gi) => {
       const x = left + (gi + .5) * cellW;
-      svg += `<text class="group-label" x="${x}" y="26" text-anchor="middle">${escapeHTML(group.dataset)}</text><text class="axis-title" x="${x}" y="44" text-anchor="middle">${escapeHTML(group.stain)}</text>`;
+      svg += `<text class="group-label" x="${x}" y="26" text-anchor="middle">${escapeHTML(group.dataset)}</text>`;
+      if (group.stain) svg += `<text class="axis-title" x="${x}" y="44" text-anchor="middle">${escapeHTML(group.stain)}</text>`;
     });
     series.forEach((model, si) => {
       const y = top + si * cellH;
-      svg += `<text class="group-label" x="${left - 14}" y="${y + 26}" text-anchor="end">${escapeHTML(model.model)}</text><text class="axis-title" x="${left - 14}" y="${y + 44}" text-anchor="end">${escapeHTML(model.version)}</text>`;
+      svg += `<text class="group-label" x="${left - 14}" y="${y + 26}" text-anchor="end">${escapeHTML(model.model)}</text>`;
+      if (model.version) svg += `<text class="axis-title" x="${left - 14}" y="${y + 44}" text-anchor="end">${escapeHTML(model.version)}</text>`;
       groups.forEach((_, gi) => {
         const cell = cells[si][gi], strength = tileStrength(cell.value, cells.map(row => row[gi].value), metric);
         const shade = strength == null ? '#f0f2f1' : `rgb(${[237,245,237].map((v, i) => Math.round(v + ([37,101,70][i] - v) * strength)).join(',')})`;
@@ -149,7 +153,7 @@ function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index
   const y = value => top + (high - value) / (high - low) * plotH;
   const step = (w - left - 14) / groups.length, x = gi => left + step * (gi + .5);
   const barW = Math.min(30, (step - 30) / series.length);
-  let svg = `<svg class="chart-svg" style="min-width:${Math.max(660, w - 280)}px" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label} 模型对比${viewLabel}"><title>按数据集和染色分组的 ${label} 对比，悬停图形查看指标均值和样本数。</title>`;
+  let svg = `<svg class="chart-svg" style="min-width:${Math.max(660, w - 280)}px" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label} 模型对比${viewLabel}">`;
   for (let i = 0; i <= 4; i++) {
     const value = low + (high - low) * i / 4, yy = y(value);
     svg += `<line class="grid" x1="${left}" x2="${w - 10}" y1="${yy}" y2="${yy}"/><text x="${left - 9}" y="${yy + 3}" text-anchor="end">${value.toFixed(metric === 'ssim' ? 2 : 1)}</text>`;
@@ -171,15 +175,16 @@ function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index
       const cell = cells[si][gi]; if (cell.value == null) return;
       const title = escapeHTML(tooltip(si, gi));
       if (view === 'line') {
-        svg += `<circle class="chart-point" tabindex="0" aria-label="${title}" cx="${x(gi)}" cy="${y(cell.value)}" r="5" fill="${color}" stroke="#fff" stroke-width="1.5"><title>${title}</title></circle>`;
+        svg += `<g class="chart-point-group" data-tooltip="${title}"><circle class="chart-point" tabindex="0" aria-label="${title}" cx="${x(gi)}" cy="${y(cell.value)}" r="5" fill="${color}" stroke="#fff" stroke-width="1.5"></circle><circle class="point-hit" cx="${x(gi)}" cy="${y(cell.value)}" r="14" fill="transparent" aria-hidden="true"/></g>`;
       } else {
         const xx = x(gi) + (si - series.length / 2) * (barW + 2) + 1;
-        svg += `<rect class="bar" tabindex="0" aria-label="${title}" x="${xx}" y="${Math.min(y(cell.value), y(0))}" width="${barW}" height="${Math.max(.8, Math.abs(y(cell.value) - y(0)))}" rx="2" fill="${color}"><title>${title}</title></rect>`;
+        svg += `<rect class="bar" tabindex="0" aria-label="${title}" data-tooltip="${title}" x="${xx}" y="${Math.min(y(cell.value), y(0))}" width="${barW}" height="${Math.max(.8, Math.abs(y(cell.value) - y(0)))}" rx="2" fill="${color}"></rect>`;
       }
     });
   });
   groups.forEach((group, gi) => {
-    svg += `<text class="group-label" x="${x(gi)}" y="${h - 31}" text-anchor="middle">${escapeHTML(group.dataset)}</text><text class="axis-title" x="${x(gi)}" y="${h - 15}" text-anchor="middle">${escapeHTML(group.stain)}</text>`;
+    svg += `<text class="group-label" x="${x(gi)}" y="${h - 31}" text-anchor="middle">${escapeHTML(group.dataset)}</text>`;
+    if (group.stain) svg += `<text class="axis-title" x="${x(gi)}" y="${h - 15}" text-anchor="middle">${escapeHTML(group.stain)}</text>`;
   });
   return svg + '</svg>';
 }
@@ -191,6 +196,15 @@ if (typeof document !== "undefined") {
   const state = { rows: [], mode: "real", source: "results.csv", metric: "fid", chart: "bar", hiddenSeries: new Set(), request: 0 };
   let toastTimer;
   const empty = (title, description) => `<div class="empty-state"><strong>${escapeHTML(title)}</strong><p>${escapeHTML(description)}</p></div>`;
+  const chartTooltip = $("chart-tooltip");
+  function showChartTooltip(target, x, y) {
+    chartTooltip.textContent = target.getAttribute("data-tooltip");
+    chartTooltip.hidden = false;
+    const width = chartTooltip.offsetWidth, height = chartTooltip.offsetHeight;
+    chartTooltip.style.left = `${Math.max(8, Math.min(x + 14, window.innerWidth - width - 8))}px`;
+    chartTooltip.style.top = `${y + height + 16 > window.innerHeight ? Math.max(8, y - height - 14) : y + 14}px`;
+  }
+  function hideChartTooltip() { chartTooltip.hidden = true; }
   function toast(message) {
     $("toast").textContent = message; $("toast").hidden = false;
     clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, 6000);
@@ -207,6 +221,7 @@ if (typeof document !== "undefined") {
     $("source-label").textContent = `${state.source} · ${state.rows.length} 条结果`;
   }
   function renderComparison(rows) {
+    hideChartTooltip();
     const metric = state.metric, allData = comparisonData(rows, metric);
     const data = selectComparisonSeries(allData, state.hiddenSeries);
     const labels = { bar: '柱状图', line: '折线图', tile: '平铺图' };
@@ -216,11 +231,11 @@ if (typeof document !== "undefined") {
     $("chart-footnote").textContent = notes[state.chart];
     const legendButtons = allData.series.map((model, index) => {
       const key = seriesKey(model), enabled = !state.hiddenSeries.has(key);
-      const label = `${model.model} · ${model.version}`;
+      const label = [model.model, model.version].filter(Boolean).join(' · ');
       const marker = state.chart === 'line'
         ? `border-top: 3px ${index % 2 ? 'dashed' : 'solid'} ${color(model.model)};background:transparent`
         : `background:${color(model.model)}`;
-      return `<button type="button" class="legend-toggle${enabled ? '' : ' is-hidden'}" data-series="${escapeHTML(key)}" aria-pressed="${enabled}" aria-label="${escapeHTML(label)}" title="${enabled ? '点击隐藏' : '点击显示'} ${escapeHTML(label)}"><i class="${state.chart === 'line' ? 'line-key' : ''}" style="${marker}" aria-hidden="true"></i><span>${escapeHTML(model.model)} <small>· ${escapeHTML(model.version)}</small></span></button>`;
+      return `<button type="button" class="legend-toggle${enabled ? '' : ' is-hidden'}" data-series="${escapeHTML(key)}" aria-pressed="${enabled}" aria-label="${escapeHTML(label)}" title="${enabled ? '点击隐藏' : '点击显示'} ${escapeHTML(label)}"><i class="${state.chart === 'line' ? 'line-key' : ''}" style="${marker}" aria-hidden="true"></i><span>${escapeHTML(model.model)}${model.version ? ` <small>· ${escapeHTML(model.version)}</small>` : ''}</span></button>`;
     }).join('');
     const heatScale = state.chart === 'tile' && data.series.length
       ? '<span class="heat-scale"><span>同列较弱</span><i></i><span>同列较优</span></span><span class="missing-key"><i></i>未提供</span>' : '';
@@ -277,6 +292,22 @@ if (typeof document !== "undefined") {
       render();
     }));
   }
+  const chart = $("comparison-chart");
+  chart.addEventListener("pointermove", event => {
+    const target = event.target.closest("[data-tooltip]");
+    if (target) showChartTooltip(target, event.clientX, event.clientY);
+    else hideChartTooltip();
+  });
+  chart.addEventListener("pointerleave", hideChartTooltip);
+  chart.addEventListener("scroll", hideChartTooltip, { passive: true });
+  chart.addEventListener("focusin", event => {
+    const target = event.target.closest("[data-tooltip]");
+    if (target) {
+      const bounds = target.getBoundingClientRect();
+      showChartTooltip(target, bounds.right, bounds.top);
+    }
+  });
+  chart.addEventListener("focusout", hideChartTooltip);
   $("comparison-legend").addEventListener("click", event => {
     const button = event.target.closest("button[data-series]");
     if (!button) return;

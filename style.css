@@ -11,7 +11,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 button:focus-visible { outline: 2px solid #59816a; outline-offset: 3px; }
 h2, p { margin: 0; }
 /* Page layout */
-main { max-width: 1288px; margin: 0 auto; padding: 24px 24px 40px; }
+main { width: 80%; margin: 0 auto; padding: 24px 0 40px; }
 /* Data controls */
 .data-toolbar { display: flex; align-items: center; gap: 16px; }
 #source-label { color: #7a827d; font-size: 11px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -59,7 +59,10 @@ h2 { font-size: 17px; font-weight: 600; }
 .chart-svg .tile-value { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .chart-svg rect.bar:hover { opacity: .75; }
 .tile:hover rect, .tile:focus rect { stroke: #365842; stroke-width: 2; }
-.chart-point:hover, .chart-point:focus { stroke: #365842; stroke-width: 2.5; }
+.chart-point-group:hover .chart-point, .chart-point:focus { stroke: #365842; stroke-width: 2.5; }
+.point-hit, .bar { cursor: crosshair; }
+.chart-tooltip { position: fixed; z-index: 30; max-width: min(340px, calc(100vw - 16px)); padding: 9px 12px; border-radius: 5px; background: #26382c; color: #fff; font-size: 12px; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; pointer-events: none; box-shadow: 0 4px 16px #1f322329; }
+.chart-tooltip[hidden] { display: none; }
 .bar:focus { stroke: #365842; stroke-width: 2; }
 .chart-footnote { border-top: 1px solid #f0f2ef; padding: 14px 0; font-size: 11px; color: #899285; line-height: 1.8; }
 .empty-state { min-height: 340px; padding: 30px 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; text-align: center; }
@@ -75,7 +78,7 @@ h2 { font-size: 17px; font-weight: 600; }
   #source-label { max-width: 180px; }
 }
 @media (max-width: 600px) {
-  main { padding: 18px 16px 28px; }
+  main { padding: 18px 0 28px; }
   .data-toolbar { flex-wrap: wrap; gap: 12px; }
   #source-label { margin-left: auto; max-width: 150px; font-size: 10px; }
   .data-actions { width: 100%; justify-content: flex-end; }
