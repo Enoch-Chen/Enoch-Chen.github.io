@@ -24,13 +24,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Validate CSV data and application
-        run: node --test tests/data.test.cjs
+        run: node --test tests/*.test.cjs
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Prepare static files
         run: |
           mkdir -p _site
-          cp index.html app.js style.css results.csv training.csv demo-results.csv demo-training.csv .nojekyll _site/
+          cp index.html app.js style.css results.csv demo-results.csv .nojekyll _site/
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:

@@ -1,84 +1,59 @@
-# StainLab · H&E → IHC 实验指标看板
+# StainLab · H&E → IHC 模型对比
 
-无需构建、无需后端、无需 CDN 的静态网站，支持 GitHub Pages。界面使用中文，适配桌面与手机。
-
-- 按数据集、染色、模型、版本筛选，并搜索实验 ID 和备注。
-- SSIM、PSNR、FID 排序、最佳值概览与分组模型对比。
-- MDCL / MDCL + CCSDG 的配对指标变化。
-- 单实验 loss、验证 SSIM / PSNR / FID 的 epoch 曲线。
-- 本地 CSV 导入预览，以及导出当前筛选与排序结果。
+单页模型对比网站：按数据集和染色分组，点击图例选择要显示的模型，切换 FID / SSIM / PSNR 查看折线图、分组柱状图或平铺热力图。支持 CSV 导入、当前显示模型的结果导出和独立演示数据。无需构建、后端或 CDN，适配桌面和手机。
 
 ## 本地预览
-
-在仓库目录运行：
 
 ```bash
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-打开 http://127.0.0.1:8000 。请通过 HTTP 打开；双击 HTML 时浏览器通常会阻止 fetch 读取旁边的 CSV，但仍可手动导入。
+打开 http://127.0.0.1:8000 。通过 HTTP 打开，避免浏览器阻止本地 CSV 读取。
 
-## 文件
+## 文件和更新数据
 
-| 文件 | 用途 |
-| --- | --- |
-| `index.html` | 页面结构与数据格式说明 |
-| `style.css` | 响应式样式 |
-| `app.js` | CSV 解析、校验、筛选、排序与 SVG 图表 |
-| `results.csv` | 每行一个实验结果 |
-| `training.csv` | 每行一个实验的某个 epoch；当前只有表头 |
-| `demo-results.csv` / `demo-training.csv` | 单独切换的人工演示数据 |
-| `draw_figure.py` | 原有绘图脚本，保留原样 |
+- `index.html`：模型对比页面。
+- `style.css`：页面与图表的响应式样式。
+- `app.js`：按 CSV 处理、图表数据与绘制、页面交互三个部分组织。
+- `results.csv`：实际模型结果，每行一个实验。
+- `demo-results.csv`：人工示例，单独切换，不用于真实结果汇报。
+- `tests/`：CSV 数据校验与图表回归测试。
+- `.github/workflows/main.yml`：检查并发布到 GitHub Pages。
 
-## 当前数据的来源与限制
-
-`results.csv` 的 24 个 FID 数值原样取自 `draw_figure.py` **未注释的** `y1_data` 至 `y4_data`。模型依次对应原始 MDCL、MDCL 加 ccsdg、PGVMS 官方 checkpoint、USIGAN 官方 checkpoint；数据集保留原脚本名称，包括 `M_ACRBOAT` 的原始拼写。
-
-脚本标题为 `Ki67 FID`，输出文件却为 `ER FID.html`，因此所有记录的 `stain` 均标为 `待确认`，不推断实际染色。请确认后修改该列。脚本没有 SSIM、PSNR、epoch 日志，故这些指标留空。`version` 的「原脚本」「官方 checkpoint」只是来源标签，需替换成实际实验版本。配对展示不证明训练配置或评估协议完全相同。
-
-演示数据具有 `DEMO-` ID、人工示例来源和页面提示，与默认实验数据分开加载。不要用于论文或真实结果汇报。
-
-## 新增实验
-
-更新 `results.csv`，保留表头；每行使用唯一 `experiment_id`。必需字段：
+必需表头：
 
 ```csv
 experiment_id,dataset,stain,model,version,ssim,psnr,fid
 ```
 
-文本字段不可空。指标缺失留空，**不要填 0 来表示缺失**。SSIM 接受 −1 到 1，PSNR 单位 dB，FID 不小于 0；支持科学计数法，可选 `source` 和 `notes`。包含逗号、引号、换行的文本按标准 CSV 引号规则转义。支持 UTF-8、BOM、CRLF 和 LF。
+每行的 ID 不可重复，文本字段不可空。缺失指标留空，不要以 0 代替；SSIM 范围 −1 到 1，PSNR 单位 dB，FID 不小于 0。可选 `source`、`notes` 或其他列，导出时保留。使用 UTF-8，仓库文本统一 LF。
 
-`training.csv` 表头：
+修改 `results.csv` 并提交、推送即可更新网站。「导入 CSV」只在当前浏览器会话中预览，单文件上限 10 MB，不会上传或覆盖仓库。导出包含当前图例中显示的模型数据；演示数据文件名带 DEMO。公式前缀文本导出时加单引号，防止表格软件执行。
 
-```csv
-experiment_id,epoch,loss,val_ssim,val_psnr,val_fid
-```
+## 当前数据来源
 
-`experiment_id` 必须关联实验表；`epoch` 为非负整数，同实验不可重复。指标允许留空，空值产生断点，不会补零。日志按 epoch 排序。训练下拉框只展示当前筛选范围内有日志的实验。
-
-「导入 CSV」只在当前会话预览，不会上传、覆盖仓库或持久保存；导入新实验表会清空旧训练日志，避免错误关联。单文件上限 10 MB。刷新恢复仓库数据。若要长期更新，请修改 CSV 并提交到仓库。「导出结果」导出当前筛选后的记录并保留排序、备注和额外列，演示模式文件名包含 DEMO；导出文本中的公式前缀会加单引号，避免表格软件将其作为公式执行。
+24 个 FID 在初次导入时原样取自旧版 `draw_figure.py` 的有效数组 `y1_data` 至 `y4_data`；网站直接读取 CSV，不依赖该脚本。保留原脚本数据集拼写和模型对应关系。脚本标题为 Ki67 FID，输出文件名为 ER FID.html，因此染色标为「待确认」，请确认后修改。SSIM 和 PSNR 未提供，留空。版本「原脚本」「官方 checkpoint」为来源标签，需替换为实际实验版本。
 
 ## 对比规则
 
-- 顶部最佳值仅描述当前筛选范围，跨数据集不直接作为模型排名。
-- 柱形按「数据集 × 染色」分组，按「模型 × 版本」分系列；重复运行以算术平均展示，悬停显示 n。
-- 模块变化只匹配 `MDCL` 与 `MDCL + CCSDG`，按「数据集 × 染色 × 版本」配对；各侧重复运行先取均值。FID 改善 = `(baseline − module) / abs(baseline)`；SSIM / PSNR 改善 = `(module − baseline) / abs(baseline)`，最后按分组等权平均。基线为 0 的组跳过。此汇总不表示统计显著性。
-- 训练图展示已记录 epoch；同一行的缺失指标中断连线，不自动插值。
+页面内可直接切换「折线图 / 柱状图 / 平铺图」，保留当前指标和模型显隐状态。三种视图使用相同的分组均值。点击图例中的模型版本即可隐藏，再次点击恢复；灰色划线表示已隐藏。选择在切换图表和指标时保留，加载新数据时恢复全部。即使隐藏所有模型，图例仍保留以便重新选中。CSV 导出仅包含图例中仍显示的模型版本。
+
+- 折线图：每条线代表一个模型版本，横轴为数据集类别，不是训练 epoch。不同染色和缺失指标处断开，不补零。
+- 柱状图：按数据集与染色分组比较各模型版本。
+- 平铺图：模型版本为行、数据集与染色为列，每格展示指标均值。各列独立着色，深绿色始终代表更优：FID 低值更深，SSIM / PSNR 高值更深。同列值相等时统一中间色，缺失值为灰色「—」。颜色不用于跨数据集比较。
+
+柱形按「数据集 × 染色」分组，按「模型 × 版本」分系列；重复运行取算术平均，悬停显示指标值和样本数 n。仅在相同数据集、染色和评估协议下判断模型优劣。FID 越低越好，SSIM / PSNR 越高越好。
 
 ## GitHub Pages
 
-1. 将仓库的 **Settings → Pages → Build and deployment → Source** 设为 **GitHub Actions**。
-2. 将这些文件提交并推送到 `main`。如果默认分支不同，修改 `.github/workflows/main.yml` 的触发分支。
-3. `Deploy StainLab to GitHub Pages` 工作流先运行数据检查，再发布页面。部署完成后在 Pages 设置或 Actions 的 deployment 中打开地址。
+1. 在 Settings → Pages → Source 选择 GitHub Actions。
+2. 将网站修改合并并推送到 `main`；其他分支的推送不会触发部署。
+3. 等待 `Deploy StainLab to GitHub Pages` 成功，再打开网站。
 
-仅白名单内的网站文件会发布，不会发布 Python 脚本、编辑器配置或测试文件。页面使用相对路径，同时支持个人主页根路径和项目站点子路径。更新 CSV 后推送即可重新部署。本次实现不自动提交、推送或修改远程仓库设置。
+工作流先校验数据，再仅发布 HTML、CSS、JS、两个结果 CSV 和 `.nojekyll`。采用相对路径，支持主页根路径及项目子路径。
 
 ## 校验
 
-安装 Node.js 后运行，无需 npm install：
-
 ```bash
-node --test tests/data.test.cjs
+node --test tests/*.test.cjs
 ```
-
-覆盖 CSV 解析、无效数据、缺失值、导出安全、配对计算、默认及演示数据与训练日志关联。
