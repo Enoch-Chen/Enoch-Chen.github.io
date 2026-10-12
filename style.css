@@ -11,9 +11,9 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 button:focus-visible { outline: 2px solid #59816a; outline-offset: 3px; }
 h2, p { margin: 0; }
 /* Page layout */
-main { width: 80%; margin: 0 auto; padding: 24px 0 40px; }
+main { width: 90%; margin: 0 auto; padding: 24px 0 40px; }
 /* Data controls */
-.data-toolbar { display: flex; align-items: center; gap: 16px; }
+.data-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
 #source-label { color: #7a827d; font-size: 11px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .data-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .button { border: 1px solid #e0e5e1; background: #fff; border-radius: 4px; padding: 8px 12px; white-space: nowrap; font-size: 12px; }
@@ -22,17 +22,20 @@ main { width: 80%; margin: 0 auto; padding: 24px 0 40px; }
 .button.primary:hover { background: #eaf0e9; }
 .text-button { border: 0; background: transparent; color: #717a74; font-size: 12px; padding: 8px 4px; white-space: nowrap; }
 .text-button:hover { color: #2f5e40; }
-.data-switch, .metric-tabs, .chart-tabs { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
-.data-switch button, .metric-tabs button, .chart-tabs button { background: transparent; border: 0; border-radius: 4px; padding: 8px 11px; font-size: 12px; color: #737c76; white-space: nowrap; }
-.data-switch button:hover, .metric-tabs button:hover, .chart-tabs button:hover { background: #f7f8f7; }
-.data-switch button.selected, .metric-tabs button.selected, .chart-tabs button.selected { background: #edf2ed; color: #345c42; }
+.data-switch, .stain-switch, .metric-tabs, .chart-tabs { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.data-switch { min-width: 0; }
+.data-switch button, .stain-switch button, .metric-tabs button, .chart-tabs button { background: transparent; border: 0; border-radius: 4px; padding: 8px 11px; font-size: 12px; color: #737c76; white-space: nowrap; }
+.data-switch button:hover, .stain-switch button:hover, .metric-tabs button:hover, .chart-tabs button:hover { background: #f7f8f7; }
+.data-switch button.selected, .stain-switch button.selected, .metric-tabs button.selected, .chart-tabs button.selected { background: #edf2ed; color: #345c42; }
 /* Chart controls and interactive legend */
 .comparison-card { margin-top: 22px; padding-top: 25px; border-top: 1px solid #eceeed; }
 .card-heading { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+.heading-left { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
 h2 { font-size: 17px; font-weight: 600; }
 .card-heading p { margin-top: 7px; font-size: 11px; color: #7a847d; line-height: 1.7; }
-.chart-controls { display: flex; align-items: center; gap: 16px; }
+.chart-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 16px; }
 .chart-tabs { padding-left: 16px; border-left: 1px solid #e5e9e5; }
+.stain-switch > span { margin-right: 10px; color: #7a847d; font-size: 11px; }
 .legend { display: flex; flex-wrap: wrap; align-items: center; column-gap: 14px; row-gap: 8px; padding: 20px 0 10px; font-size: 12px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend-toggle { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 4px; background: transparent; padding: 7px 4px; font: inherit; color: #435749; }
@@ -51,7 +54,7 @@ h2 { font-size: 17px; font-weight: 600; }
 .legend .missing-key i { background: #f0f2f1; border: 1px solid #d9dfdb; }
 /* Chart rendering and messages */
 .comparison-chart { overflow-x: auto; min-height: 340px; padding-top: 8px; }
-.chart-svg { display: block; width: 100%; height: auto; }
+.chart-svg { display: block; width: 100%; max-width: 1100px; height: auto; }
 .chart-svg text { font-family: inherit; fill: #818c83; font-size: 11px; }
 .chart-svg .grid { stroke: #edf0ec; stroke-dasharray: 3 4; }
 .chart-svg .axis-title { font-size: 10px; fill: #8a9488; }
@@ -72,20 +75,21 @@ h2 { font-size: 17px; font-weight: 600; }
 .noscript { position: fixed; inset: 10px 10px auto; background: #fff; color: #963b30; padding: 20px; border: 1px solid; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 /* Responsive layout */
-@media (max-width: 800px) {
+@media (max-width: 1150px) {
   .card-heading { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .chart-controls { justify-content: flex-start; }
   .legend .legend-help { margin-left: 0; }
   #source-label { max-width: 180px; }
 }
 @media (max-width: 600px) {
   main { padding: 18px 0 28px; }
-  .data-toolbar { flex-wrap: wrap; gap: 12px; }
-  #source-label { margin-left: auto; max-width: 150px; font-size: 10px; }
+  .data-toolbar { gap: 12px; }
+  #source-label { max-width: 100%; font-size: 10px; }
   .data-actions { width: 100%; justify-content: flex-end; }
   .comparison-card { padding-top: 20px; }
-  .chart-controls { flex-wrap: wrap; gap: 10px; }
+  .chart-controls { gap: 10px; }
   .chart-tabs { padding-left: 10px; }
-  .metric-tabs button, .chart-tabs button { padding: 7px 8px; font-size: 11px; }
+  .stain-switch button, .metric-tabs button, .chart-tabs button { padding: 7px 8px; font-size: 11px; }
   .legend { padding-top: 16px; column-gap: 12px; font-size: 11px; }
   .legend .legend-help { flex-basis: 100%; }
   .comparison-chart, .empty-state { min-height: 270px; }

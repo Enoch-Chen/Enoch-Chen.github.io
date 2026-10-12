@@ -35,6 +35,24 @@ test('invalid metric ranges and non-finite numbers are rejected', () => {
   }
 });
 
+test('all six metrics parse, while older CSV files remain supported', () => {
+  const fullHeader = 'experiment_id,dataset,stain,model,version,fid,kid,ssim,psnr,lpips,dists';
+  const [row] = validateCSV(fullHeader + '\nE-1,MIST,,MDCL,,32.0328,0.0123,0.8,26.5,0.14,0.09');
+  assert.deepEqual([row.fid, row.kid, row.ssim, row.psnr, row.lpips, row.dists], [32.0328, 0.0123, 0.8, 26.5, 0.14, 0.09]);
+  for (const metric of ['kid', 'lpips', 'dists']) {
+    const invalid = { ...row, [metric]: -0.01 };
+    assert.throws(() => validateCSV(serializeCSV([invalid], Object.keys(invalid))), new RegExp(metric));
+  }
+  assert.equal(validateCSV(header + '\n' + record)[0].kid, undefined);
+});
+
+test('unfinished placeholders are skipped, but measured rows still need a model', () => {
+  const fields = ['experiment_id', 'dataset', 'stain', 'model', 'version', 'fid', 'kid', 'ssim', 'psnr', 'lpips', 'dists'];
+  const draft = { experiment_id: 'DRAFT', dataset: 'MIST', stain: 'ER', model: '', version: '', fid: null };
+  assert.deepEqual(validateCSV(serializeCSV([draft], fields)), []);
+  assert.throws(() => validateCSV(serializeCSV([{ ...draft, fid: 34.6105 }], fields)), /model 不可为空/);
+});
+
 test('export roundtrips quotes, Unicode, nulls and extra columns', () => {
   const row = { experiment_id: 'E', dataset: 'BCI', stain: 'HER2', model: '模型,"A"', version: 'v1', ssim: null, psnr: -3, fid: 0, notes: '第一行\n第二行' };
   assert.deepEqual(validateCSV(serializeCSV([row], Object.keys(row))), [row]);
@@ -45,16 +63,10 @@ test('export neutralizes spreadsheet formulas in imported text', () => {
   assert.equal(row.a[0], "'"); assert.equal(row.b[0], "'"); assert.equal(row.c[0], "'"); assert.equal(row.d, '-3');
 });
 
-test('repository result files satisfy the documented schema', () => {
-  for (const prefix of ['', 'demo-']) {
-    const rows = validateCSV(read(prefix + 'results.csv'));
-    assert.ok(rows.length > 0);
+test('six named data groups have valid CSV templates', () => {
+  for (const name of ['mist-main', 'ihc4bc-main', 'tianjin-main', 'mist-extrapolation', 'ihc4bc-extrapolation', 'tianjin-extrapolation']) {
+    const csv = read(`data/${name}.csv`);
+    assert.ok(Array.isArray(validateCSV(csv)));
+    for (const metric of ['fid', 'kid', 'ssim', 'psnr', 'lpips', 'dists']) assert.ok(csv.split('\n')[0].includes(metric));
   }
-});
-test('bundled demo remains explicit and separate', () => {
-  const demo = validateCSV(read('demo-results.csv'));
-  const real = validateCSV(read('results.csv'));
-  const realIDs = new Set(real.map(r => r.experiment_id));
-  assert.ok(demo.every(r => r.experiment_id.startsWith('DEMO-') && r.source === '人工示例'));
-  assert.ok(demo.every(r => !realIDs.has(r.experiment_id)));
 });

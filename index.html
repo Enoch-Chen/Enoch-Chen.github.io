@@ -5,18 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
   <title>StainLab · 模型对比</title>
-  <meta name="description" content="H&E 到 IHC 虚拟染色模型的 SSIM、PSNR 与 FID 对比。">
+  <meta name="description" content="H&E 到 IHC 虚拟染色模型的 FID、KID、SSIM、PSNR、LPIPS 与 DISTS 对比。">
   <link rel="stylesheet" href="./style.css">
   <script src="./app.js" defer></script>
 </head>
 <body>
   <main>
     <div class="data-toolbar">
-      <div class="data-switch" role="group" aria-label="数据来源">
-        <button id="real-mode" class="selected" aria-pressed="true">实验数据</button>
-        <button id="demo-mode" aria-pressed="false">演示数据</button>
+      <div class="data-switch" role="group" aria-label="实验数据组">
+        <button data-group="mist-main" class="selected" aria-pressed="true">MIST主指标</button>
+        <button data-group="ihc4bc-main" aria-pressed="false">IHC4BC主指标</button>
+        <button data-group="tianjin-main" aria-pressed="false">Tianjin主指标</button>
+        <button data-group="mist-extrapolation" aria-pressed="false">MIST真实外推</button>
+        <button data-group="ihc4bc-extrapolation" aria-pressed="false">IHC4BC真实外推</button>
+        <button data-group="tianjin-extrapolation" aria-pressed="false">Tianjin真实外推</button>
       </div>
-      <span id="source-label">正在读取 results.csv…</span>
+      <span id="source-label">正在读取数据…</span>
       <div class="data-actions">
         <button class="text-button" id="reload-data">刷新</button>
         <button class="button" id="import-results">导入 CSV</button>
@@ -25,15 +29,27 @@
     </div>
     <section class="comparison-card" id="comparison">
       <div class="card-heading">
-        <div>
-          <h2>模型对比</h2>
-          <p id="comparison-description">查看各模型的指标</p>
+        <div class="heading-left">
+          <div>
+            <h2>模型对比</h2>
+            <p id="comparison-description">查看各模型的指标</p>
+          </div>
+          <div class="stain-switch" role="group" aria-label="染色类型">
+            <span>染色类型</span>
+            <button data-stain="ER" class="selected" aria-pressed="true">ER</button>
+            <button data-stain="PR" aria-pressed="false">PR</button>
+            <button data-stain="HER2" aria-pressed="false">HER2</button>
+            <button data-stain="KI67" aria-pressed="false">KI67</button>
+          </div>
         </div>
         <div class="chart-controls">
           <div class="metric-tabs" role="group" aria-label="对比指标">
             <button data-metric="fid" class="selected" aria-pressed="true">FID ↓</button>
+            <button data-metric="kid" aria-pressed="false">KID ↓</button>
             <button data-metric="ssim" aria-pressed="false">SSIM ↑</button>
             <button data-metric="psnr" aria-pressed="false">PSNR ↑</button>
+            <button data-metric="lpips" aria-pressed="false">LPIPS ↓</button>
+            <button data-metric="dists" aria-pressed="false">DISTS ↓</button>
           </div>
           <div class="chart-tabs" role="group" aria-label="图表类型">
             <button data-chart="line" aria-pressed="false">折线图</button>

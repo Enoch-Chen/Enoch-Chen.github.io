@@ -1,9 +1,18 @@
 "use strict";
-const RESULT_FIELDS = ["experiment_id", "dataset", "stain", "model", "version", "ssim", "psnr", "fid"];
+const RESULT_FIELDS = ["experiment_id", "dataset", "stain", "model", "version", "fid", "kid", "ssim", "psnr", "lpips", "dists"];
+const REQUIRED_FIELDS = ["experiment_id", "dataset", "stain", "model", "version", "fid", "ssim", "psnr"];
 const METRICS = {
   fid: { label: "FID", digits: 4, direction: -1 },
+  kid: { label: "KID", digits: 4, direction: -1 },
   ssim: { label: "SSIM", digits: 4, direction: 1 },
   psnr: { label: "PSNR", digits: 2, direction: 1 },
+  lpips: { label: "LPIPS", digits: 4, direction: -1 },
+  dists: { label: "DISTS", digits: 4, direction: -1 },
+};
+const CHARTS = {
+  bar: { label: "柱状图", hint: "按数据集分组比较模型", footnote: "同模型、版本的重复结果取均值；悬停查看数值。" },
+  line: { label: "折线图", hint: "查看模型在不同数据集上的指标变化", footnote: "横轴为数据集；不同染色和缺失值处断线。悬停查看均值与样本数。" },
+  tile: { label: "平铺图", hint: "模型 × 数据集，以色块和数值展示结果", footnote: "每列独立比较，颜色越深越优；同列相等值同色，灰色「—」为缺失。" },
 };
 const COLORS = ["#50765b", "#a8be88", "#dbab81", "#acbfc8", "#9b91af", "#c4b96e", "#8bb9a8", "#ce9290"];
 
@@ -38,16 +47,19 @@ function parseCSV(input) {
 }
 function validateCSV(text) {
   const { headers, rows } = parseCSV(text);
-  const missing = RESULT_FIELDS.filter(field => !headers.includes(field));
+  const missing = REQUIRED_FIELDS.filter(field => !headers.includes(field));
   if (missing.length) throw new Error(`缺少字段：${missing.join(", ")}`);
   const seen = new Set();
-  return rows.map((source, index) => {
+  return rows.flatMap((source, index) => {
+    // A row without a model or measurements is an unfinished CSV placeholder.
+    if (!source.model && Object.keys(METRICS).every(field => !source[field])) return [];
     const row = { ...source };
     const fail = message => { throw new Error(`第 ${index + 2} 条记录：${message}`); };
     for (const field of ["experiment_id", "dataset", "model"]) {
       if (!row[field]) fail(`${field} 不可为空。`);
     }
-    for (const field of RESULT_FIELDS.slice(5)) {
+    for (const field of Object.keys(METRICS)) {
+      if (!headers.includes(field)) continue;
       if (row[field] === "") {
         row[field] = null;
         continue;
@@ -58,11 +70,11 @@ function validateCSV(text) {
       row[field] = Number(row[field]);
       if (!Number.isFinite(row[field])) fail(`${field} 必须为有限数字。`);
       if (field === "ssim" && (row[field] < -1 || row[field] > 1)) fail(`${field} 应在 −1 到 1 之间。`);
-      if (field === "fid" && row[field] < 0) fail(`${field} 不可小于 0。`);
+      if (["fid", "kid", "lpips", "dists"].includes(field) && row[field] < 0) fail(`${field} 不可小于 0。`);
     }
     if (seen.has(row.experiment_id)) fail("experiment_id 重复。");
     seen.add(row.experiment_id);
-    return row;
+    return [row];
   });
 }
 
@@ -79,6 +91,7 @@ const mean = values => values.reduce((a, b) => a + b, 0) / values.length;
 const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const groupKey = r => JSON.stringify([r.dataset, r.stain]);
 const seriesKey = r => JSON.stringify([r.model, r.version]);
+const rowsForStain = (rows, stain) => rows.filter(row => row.stain.toUpperCase() === stain);
 // Chart data and rendering. All views share means; absent measurements stay null.
 function comparisonData(rows, metric) {
   const groups = [...new Map(rows.map(r => [groupKey(r), r])).values()];
@@ -121,7 +134,7 @@ function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index
     const modelName = [model.model, model.version].filter(Boolean).join(' · ');
     return `${groupName} / ${modelName} / ${label}: ${format(cell.value)}${cell.value == null ? '（未提供）' : ` (n=${cell.count})`}`;
   };
-  const viewLabel = { bar: '柱状图', line: '折线图', tile: '平铺热力图' }[view];
+  const viewLabel = CHARTS[view].label;
   if (view === 'tile') {
     const left = 190, top = 65, cellW = 126, cellH = 70;
     const w = left + groups.length * cellW + 18, h = top + series.length * cellH + 18;
@@ -156,7 +169,7 @@ function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index
   let svg = `<svg class="chart-svg" style="min-width:${Math.max(660, w - 280)}px" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label} 模型对比${viewLabel}">`;
   for (let i = 0; i <= 4; i++) {
     const value = low + (high - low) * i / 4, yy = y(value);
-    svg += `<line class="grid" x1="${left}" x2="${w - 10}" y1="${yy}" y2="${yy}"/><text x="${left - 9}" y="${yy + 3}" text-anchor="end">${value.toFixed(metric === 'ssim' ? 2 : 1)}</text>`;
+    svg += `<line class="grid" x1="${left}" x2="${w - 10}" y1="${yy}" y2="${yy}"/><text x="${left - 9}" y="${yy + 3}" text-anchor="end">${value.toFixed(METRICS[metric].digits > 2 ? 3 : 1)}</text>`;
   }
   series.forEach((model, si) => {
     const seriesIndex = data.seriesIndices?.[si] ?? si;
@@ -189,14 +202,23 @@ function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index
   return svg + '</svg>';
 }
 
-if (typeof module !== "undefined") module.exports = { parseCSV, validateCSV, serializeCSV, comparisonData, comparisonSVG, tileStrength, selectComparisonSeries };
+if (typeof module !== "undefined") module.exports = { parseCSV, validateCSV, serializeCSV, comparisonData, comparisonSVG, tileStrength, selectComparisonSeries, rowsForStain };
 // Page state, rendering and interactions. Node tests only use the pure helpers above.
 if (typeof document !== "undefined") {
   const $ = id => document.getElementById(id);
-  const state = { rows: [], mode: "real", source: "results.csv", metric: "fid", chart: "bar", hiddenSeries: new Set(), request: 0 };
+  const groupButtons = [...document.querySelectorAll("[data-group]")];
+  const stainButtons = [...document.querySelectorAll("[data-stain]")];
+  const state = { rows: [], group: "mist-main", source: "", stain: "ER", metric: "fid", chart: "bar", hiddenSeries: new Set(), request: 0 };
   let toastTimer;
   const empty = (title, description) => `<div class="empty-state"><strong>${escapeHTML(title)}</strong><p>${escapeHTML(description)}</p></div>`;
   const chartTooltip = $("chart-tooltip");
+  function setSelected(buttons, selected) {
+    buttons.forEach(button => {
+      const active = button === selected;
+      button.classList.toggle("selected", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
   function showChartTooltip(target, x, y) {
     chartTooltip.textContent = target.getAttribute("data-tooltip");
     chartTooltip.hidden = false;
@@ -210,25 +232,25 @@ if (typeof document !== "undefined") {
     clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, 6000);
   }
   function color(model) { return COLORS[[...new Set(state.rows.map(r => r.model))].indexOf(model) % COLORS.length] || COLORS[0]; }
-  function selectedRows() { return state.rows.filter(row => !state.hiddenSeries.has(seriesKey(row))); }
+  function filteredRows() { return rowsForStain(state.rows, state.stain); }
+  function selectedRows() { return filteredRows().filter(row => !state.hiddenSeries.has(seriesKey(row))); }
   function setLoading(loading) {
-    [$("real-mode"), $("demo-mode"), $("reload-data")].forEach(button => button.disabled = loading);
+    [...groupButtons, $("reload-data")].forEach(button => button.disabled = loading);
   }
   function updateSourceControls() {
-    const demo = state.mode === "demo";
-    $("real-mode").classList.toggle("selected", !demo); $("demo-mode").classList.toggle("selected", demo);
-    $("real-mode").setAttribute("aria-pressed", String(!demo)); $("demo-mode").setAttribute("aria-pressed", String(demo));
-    $("source-label").textContent = `${state.source} · ${state.rows.length} 条结果`;
+    const selected = groupButtons.find(button => button.dataset.group === state.group);
+    setSelected(groupButtons, selected);
+    $("source-label").textContent = `${selected ? selected.textContent : state.source} · ${filteredRows().length} 条结果`;
   }
-  function renderComparison(rows) {
+  function renderComparison() {
     hideChartTooltip();
+    const rows = filteredRows();
     const metric = state.metric, allData = comparisonData(rows, metric);
     const data = selectComparisonSeries(allData, state.hiddenSeries);
-    const labels = { bar: '柱状图', line: '折线图', tile: '平铺图' };
-    $("comparison-description").textContent = `${METRICS[metric].label}${metric === 'psnr' ? ' / dB' : ''} · ${METRICS[metric].direction === 1 ? '越高越好' : '越低越好'} · ${labels[state.chart]}`;
-    $("chart-hint").textContent = { bar: '按数据集分组比较模型', line: '查看模型在不同数据集上的指标变化', tile: '模型 × 数据集，以色块和数值展示结果' }[state.chart];
-    const notes = { bar: '同模型、版本的重复结果取均值；悬停查看数值。', line: '横轴为数据集；不同染色和缺失值处断线。悬停查看均值与样本数。', tile: '每列独立比较，颜色越深越优；同列相等值同色，灰色「—」为缺失。' };
-    $("chart-footnote").textContent = notes[state.chart];
+    const chart = CHARTS[state.chart];
+    $("comparison-description").textContent = `${METRICS[metric].label}${metric === 'psnr' ? ' / dB' : ''} · ${METRICS[metric].direction === 1 ? '越高越好' : '越低越好'} · ${chart.label}`;
+    $("chart-hint").textContent = chart.hint;
+    $("chart-footnote").textContent = chart.footnote;
     const legendButtons = allData.series.map((model, index) => {
       const key = seriesKey(model), enabled = !state.hiddenSeries.has(key);
       const label = [model.model, model.version].filter(Boolean).join(' · ');
@@ -240,31 +262,35 @@ if (typeof document !== "undefined") {
     const heatScale = state.chart === 'tile' && data.series.length
       ? '<span class="heat-scale"><span>同列较弱</span><i></i><span>同列较优</span></span><span class="missing-key"><i></i>未提供</span>' : '';
     $("comparison-legend").innerHTML = legendButtons + (allData.series.length ? `<span class="legend-help">${data.series.length} / ${allData.series.length} 已显示 · 点击切换</span>` : '') + heatScale;
-    const svg = comparisonSVG(data, metric, state.chart, color);
-    $("comparison-chart").innerHTML = svg || (allData.series.length && !data.series.length
-      ? empty('所有模型已隐藏', '点击上方任意模型名称恢复显示。')
-      : empty('暂无可对比的指标', '切换指标，或在 CSV 中补充此项指标。'));
+    let content = comparisonSVG(data, metric, state.chart, color);
+    if (!content) {
+      if (allData.series.length && !data.series.length) content = empty('所有模型已隐藏', '点击上方任意模型名称恢复显示。');
+      else if (!state.rows.length) content = empty('这个数据组暂无结果', '在对应 CSV 中填写实验结果后刷新页面。');
+      else if (!rows.length) content = empty('该染色暂无结果', '切换染色类型，或在 CSV 中补充此项染色的结果。');
+      else content = empty('暂无可对比的指标', '切换指标，或在 CSV 中补充此项指标。');
+    }
+    $("comparison-chart").innerHTML = content;
   }
   function render() {
-    renderComparison(state.rows);
+    renderComparison();
     $("export-results").disabled = !selectedRows().length;
   }
 
-  async function loadMode(mode) {
+  async function loadGroup(group) {
     const request = ++state.request;
     setLoading(true);
     try {
-      const path = mode === "demo" ? "demo-results.csv" : "results.csv";
+      const path = `data/${group}.csv`;
       const response = await fetch(new URL(path, document.baseURI), { cache: "no-store" });
       if (!response.ok) throw new Error(`${path} 读取失败（HTTP ${response.status}）。`);
       const rows = validateCSV(await response.text());
       if (request !== state.request) return;
-      Object.assign(state, { rows, mode, source: path, hiddenSeries: new Set() });
+      Object.assign(state, { rows, group, source: path, hiddenSeries: new Set() });
       updateSourceControls(); render();
     } catch (error) {
       if (request !== state.request) return;
       if (!state.rows.length) $("source-label").textContent = "数据未加载";
-      toast(`加载失败：${error.message} 请通过本地 HTTP 服务或 GitHub Pages 打开页面，也可导入 CSV。${state.rows.length ? " 当前保留已加载的数据。" : ""}`);
+      toast(`加载失败：${error.message}${state.rows.length ? " 当前保留已加载的数据。" : ""}`);
       render();
     } finally { if (request === state.request) setLoading(false); }
   }
@@ -275,8 +301,7 @@ if (typeof document !== "undefined") {
       const rows = validateCSV(await file.text());
       if (!rows.length) throw new Error("CSV 没有数据记录。");
       ++state.request;
-      const demo = rows.every(r => r.source === "人工示例" || r.experiment_id.startsWith("DEMO-"));
-      Object.assign(state, { rows, mode: demo ? "demo" : "import", source: file.name, hiddenSeries: new Set() });
+      Object.assign(state, { rows, group: null, source: file.name, hiddenSeries: new Set() });
       setLoading(false); updateSourceControls(); render();
       toast(`已导入 ${rows.length} 条结果，仅在当前会话生效。`);
     } catch (error) { toast(`导入失败：${error.message}`); }
@@ -285,10 +310,7 @@ if (typeof document !== "undefined") {
     const buttons = document.querySelectorAll(`[data-${key}]`);
     buttons.forEach(button => button.addEventListener("click", () => {
       state[key] = button.dataset[key];
-      buttons.forEach(tab => {
-        tab.classList.toggle("selected", tab === button);
-        tab.setAttribute("aria-pressed", String(tab === button));
-      });
+      setSelected(buttons, button);
       render();
     }));
   }
@@ -318,9 +340,13 @@ if (typeof document !== "undefined") {
     // Keep keyboard focus on the same legend control after its markup is refreshed.
     [...$("comparison-legend").querySelectorAll("button[data-series]")].find(item => item.dataset.series === key)?.focus({ preventScroll: true });
   });
-  $("real-mode").addEventListener("click", () => loadMode("real"));
-  $("demo-mode").addEventListener("click", () => loadMode("demo"));
-  $("reload-data").addEventListener("click", () => loadMode(state.mode === "demo" ? "demo" : "real"));
+  groupButtons.forEach(button => button.addEventListener("click", () => loadGroup(button.dataset.group)));
+  stainButtons.forEach(button => button.addEventListener("click", () => {
+    state.stain = button.dataset.stain;
+    setSelected(stainButtons, button);
+    updateSourceControls(); render();
+  }));
+  $("reload-data").addEventListener("click", () => state.group ? loadGroup(state.group) : toast("当前为导入数据，请重新导入 CSV。"));
   $("import-results").addEventListener("click", () => $("results-file").click());
   $("results-file").addEventListener("change", async event => { await importFile(event.target.files[0]); event.target.value = ""; });
   $("export-results").addEventListener("click", () => {
@@ -328,9 +354,9 @@ if (typeof document !== "undefined") {
     const fields = [...new Set([...RESULT_FIELDS, "source", "notes", ...rows.flatMap(r => Object.keys(r))])];
     const blob = new Blob([serializeCSV(rows, fields)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob), link = document.createElement("a");
-    link.href = url; link.download = `stainlab-${state.mode === "demo" ? "DEMO-" : ""}results.csv`; link.click();
+    link.href = url; link.download = `stainlab-${state.group || "import"}-results.csv`; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast(`已导出当前显示模型的 ${rows.length} 条结果${state.mode === "demo" ? "（演示数据）" : ""}。`);
+    toast(`已导出当前显示模型的 ${rows.length} 条结果。`);
   });
-  loadMode("real");
+  loadGroup("mist-main");
 }
