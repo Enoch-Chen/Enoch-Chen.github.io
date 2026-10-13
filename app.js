@@ -12,7 +12,7 @@ const METRICS = {
 const CHARTS = {
   bar: { label: "柱状图", hint: "按数据集分组比较模型", footnote: "同模型、版本的重复结果取均值；悬停查看数值。" },
   line: { label: "折线图", hint: "查看模型在不同数据集上的指标变化", footnote: "横轴为数据集；不同染色和缺失值处断线。悬停查看均值与样本数。" },
-  tile: { label: "平铺图", hint: "模型 × 数据集，以色块和数值展示结果", footnote: "每列独立比较，颜色越深越优；同列相等值同色，灰色「—」为缺失。" },
+  tile: { label: "平铺图", hint: "模型 × 数据集，以色块和数值展示结果", footnote: "每列按当前显示的模型比较：深绿最优，浅绿次优，并列同级；其余为中性色，灰色「—」为缺失。" },
 };
 const COLORS = ["#50765b", "#a8be88", "#dbab81", "#acbfc8", "#9b91af", "#c4b96e", "#8bb9a8", "#ce9290"];
 
@@ -117,10 +117,10 @@ function selectComparisonSeries(data, hidden) {
 }
 function tileStrength(value, values, metric) {
   if (value == null) return null;
-  const valid = values.filter(v => v != null), min = Math.min(...valid), max = Math.max(...valid);
-  if (min === max) return .5;
-  const ratio = (value - min) / (max - min);
-  return METRICS[metric].direction === 1 ? ratio : 1 - ratio;
+  const ranked = [...new Set(values.filter(v => v != null))]
+    .sort((a, b) => (b - a) * METRICS[metric].direction);
+  const place = ranked.indexOf(value);
+  return place === 0 ? 1 : place === 1 ? .5 : 0;
 }
 function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index % COLORS.length]) {
   const { groups, series, cells } = data;
@@ -130,7 +130,7 @@ function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index
   const format = v => v == null ? '—' : v.toFixed(METRICS[metric].digits);
   const tooltip = (si, gi) => {
     const cell = cells[si][gi], group = groups[gi], model = series[si];
-    const groupName = [group.dataset, group.stain].filter(Boolean).join(' · ');
+    const groupName = group.dataset;
     const modelName = [model.model, model.version].filter(Boolean).join(' · ');
     return `${groupName} / ${modelName} / ${label}: ${format(cell.value)}${cell.value == null ? '（未提供）' : ` (n=${cell.count})`}`;
   };
@@ -138,11 +138,10 @@ function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index
   if (view === 'tile') {
     const left = 190, top = 65, cellW = 126, cellH = 70;
     const w = left + groups.length * cellW + 18, h = top + series.length * cellH + 18;
-    let svg = `<svg class="chart-svg tile-svg" style="min-width:${w}px" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label} 模型对比${viewLabel}"><title>每格展示指标均值；深绿色表示表现更好，灰色为缺失值。</title>`;
+    let svg = `<svg class="chart-svg tile-svg" style="min-width:${w}px" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label} 模型对比${viewLabel}"><title>每格展示指标均值；每列深绿为最优、浅绿为次优，其余为中性色，灰色为缺失值。</title>`;
     groups.forEach((group, gi) => {
       const x = left + (gi + .5) * cellW;
       svg += `<text class="group-label" x="${x}" y="26" text-anchor="middle">${escapeHTML(group.dataset)}</text>`;
-      if (group.stain) svg += `<text class="axis-title" x="${x}" y="44" text-anchor="middle">${escapeHTML(group.stain)}</text>`;
     });
     series.forEach((model, si) => {
       const y = top + si * cellH;
@@ -150,8 +149,8 @@ function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index
       if (model.version) svg += `<text class="axis-title" x="${left - 14}" y="${y + 44}" text-anchor="end">${escapeHTML(model.version)}</text>`;
       groups.forEach((_, gi) => {
         const cell = cells[si][gi], strength = tileStrength(cell.value, cells.map(row => row[gi].value), metric);
-        const shade = strength == null ? '#f0f2f1' : `rgb(${[237,245,237].map((v, i) => Math.round(v + ([37,101,70][i] - v) * strength)).join(',')})`;
-        const text = strength != null && strength > .55 ? '#ffffff' : '#315440';
+        const shade = strength === 1 ? '#256546' : strength === .5 ? '#b9d4bf' : strength === 0 ? '#f7f8f6' : '#edf0ee';
+        const text = strength === 1 ? '#ffffff' : '#315440';
         const x = left + gi * cellW, title = escapeHTML(tooltip(si, gi));
         svg += `<g class="tile" tabindex="0" aria-label="${title}"><title>${title}</title><rect x="${x + 4}" y="${y + 4}" width="${cellW - 8}" height="${cellH - 8}" rx="7" fill="${shade}"/><text class="tile-value" style="fill:${text}" x="${x + cellW / 2}" y="${y + 38}" text-anchor="middle">${format(cell.value)}</text></g>`;
       });
@@ -197,7 +196,6 @@ function comparisonSVG(data, metric, view, colorFor = (_, index) => COLORS[index
   });
   groups.forEach((group, gi) => {
     svg += `<text class="group-label" x="${x(gi)}" y="${h - 31}" text-anchor="middle">${escapeHTML(group.dataset)}</text>`;
-    if (group.stain) svg += `<text class="axis-title" x="${x(gi)}" y="${h - 15}" text-anchor="middle">${escapeHTML(group.stain)}</text>`;
   });
   return svg + '</svg>';
 }
@@ -260,7 +258,7 @@ if (typeof document !== "undefined") {
       return `<button type="button" class="legend-toggle${enabled ? '' : ' is-hidden'}" data-series="${escapeHTML(key)}" aria-pressed="${enabled}" aria-label="${escapeHTML(label)}" title="${enabled ? '点击隐藏' : '点击显示'} ${escapeHTML(label)}"><i class="${state.chart === 'line' ? 'line-key' : ''}" style="${marker}" aria-hidden="true"></i><span>${escapeHTML(model.model)}${model.version ? ` <small>· ${escapeHTML(model.version)}</small>` : ''}</span></button>`;
     }).join('');
     const heatScale = state.chart === 'tile' && data.series.length
-      ? '<span class="heat-scale"><span>同列较弱</span><i></i><span>同列较优</span></span><span class="missing-key"><i></i>未提供</span>' : '';
+      ? '<span class="heat-scale"><i class="best-key"></i>最优<i class="second-key"></i>次优<i class="other-key"></i>其余</span><span class="missing-key"><i></i>未提供</span>' : '';
     $("comparison-legend").innerHTML = legendButtons + (allData.series.length ? `<span class="legend-help">${data.series.length} / ${allData.series.length} 已显示 · 点击切换</span>` : '') + heatScale;
     let content = comparisonSVG(data, metric, state.chart, color);
     if (!content) {

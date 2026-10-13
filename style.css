@@ -49,9 +49,12 @@ h2 { font-size: 17px; font-weight: 600; }
 .legend .legend-help { margin-left: auto; font-size: 10px; color: #8a938c; }
 .legend i.line-key { width: 19px; height: 0; border-radius: 0; }
 .legend .heat-scale { gap: 8px; font-size: 10px; color: #7f8c80; }
-.legend .heat-scale > i { width: 80px; height: 7px; background: linear-gradient(to right, #edf5ed, #256546); border-radius: 2px; }
+.legend .heat-scale > i { width: 10px; height: 10px; border-radius: 2px; }
+.legend .heat-scale .best-key { background: #256546; }
+.legend .heat-scale .second-key { background: #b9d4bf; }
+.legend .heat-scale .other-key { background: #f7f8f6; border: 1px solid #e5ebe5; }
 .legend .missing-key { font-size: 10px; color: #7f8c80; }
-.legend .missing-key i { background: #f0f2f1; border: 1px solid #d9dfdb; }
+.legend .missing-key i { background: #edf0ee; border: 1px solid #d9dfdb; }
 /* Chart rendering and messages */
 .comparison-chart { overflow-x: auto; min-height: 340px; padding-top: 8px; }
 .chart-svg { display: block; width: 100%; max-width: 1100px; height: auto; }

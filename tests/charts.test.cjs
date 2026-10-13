@@ -38,15 +38,23 @@ test('line charts break at missing measurements and stain boundaries', () => {
   assert.equal((svg.match(/class="chart-point"/g) || []).length, 3);
 });
 
-test('heatmap colors respect direction, ties and missing values', () => {
+test('tile colors mark the top two distinct values per column', () => {
   assert.equal(tileStrength(20, [20, 40, null], 'fid'), 1);
-  assert.equal(tileStrength(40, [20, 40, null], 'fid'), 0);
+  assert.equal(tileStrength(40, [20, 40, null], 'fid'), .5);
+  assert.equal(tileStrength(60, [20, 40, 60], 'fid'), 0);
   assert.equal(tileStrength(.9, [.7, .9], 'ssim'), 1);
+  assert.equal(tileStrength(.7, [.7, .9], 'ssim'), .5);
   assert.equal(tileStrength(30, [20, 30], 'psnr'), 1);
-  assert.equal(tileStrength(0, [0, 0], 'fid'), .5);
+  assert.equal(tileStrength(0, [0, 0], 'fid'), 1);
+  assert.equal(tileStrength(20, [20, 20, 30, 40], 'fid'), 1);
+  assert.equal(tileStrength(30, [20, 20, 30, 40], 'fid'), .5);
   assert.equal(tileStrength(null, [0, null], 'fid'), null);
   for (const metric of ['kid', 'lpips', 'dists']) assert.equal(tileStrength(0.1, [0.1, 0.2], metric), 1);
-  const svg = comparisonSVG(comparisonData([row('A', 0), row('B', null)], 'fid'), 'fid', 'tile');
+  const svg = comparisonSVG(comparisonData([
+    row('A', 0), row('A', 1, { model: 'Second' }),
+    row('A', 2, { model: 'Third' }), row('B', null),
+  ], 'fid'), 'fid', 'tile');
+  for (const color of ['#256546', '#b9d4bf', '#f7f8f6', '#edf0ee']) assert.ok(svg.includes(`fill="${color}"`));
   assert.ok(svg.includes('>0.0000</text>'));
   assert.ok(svg.includes('>—</text>'));
 });
