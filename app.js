@@ -319,7 +319,7 @@ if (typeof document !== "undefined") {
   async function loadExamples() {
     try {
       const path = "data/results_MIST/examples.json";
-      const response = await fetch(new URL(path, document.baseURI));
+      const response = await fetch(new URL(path, document.baseURI), { cache: "no-store" });
       if (!response.ok) throw new Error(`${path} 读取失败（HTTP ${response.status}）。`);
       const examples = await response.json();
       if (!Array.isArray(examples) || examples.some(example => !/^[\w-]+$/.test(example.id) || !["ER", "PR", "HER2", "KI67"].includes(example.stain))) {
