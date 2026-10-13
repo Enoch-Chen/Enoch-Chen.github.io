@@ -63,10 +63,30 @@
       <div id="comparison-chart" class="comparison-chart" aria-live="polite"></div>
       <div id="chart-footnote" class="chart-footnote">同模型的多次结果取均值。悬停柱形查看数值。</div>
     </section>
+    <section class="image-comparison" id="image-comparison" hidden>
+      <div class="image-heading">
+        <div>
+          <h2>生成图像对比</h2>
+          <p>同一样本的 H&amp;E、真实 IHC 与不同机型的生成结果 · 点击图片放大</p>
+        </div>
+        <div class="image-model" role="group" aria-label="图像对比模型">
+          <span>模型</span>
+          <button data-image-model="Baseline" class="selected" aria-pressed="true">Baseline</button>
+          <button data-image-model="PGVMS" aria-pressed="false">PGVMS</button>
+          <button data-image-model="USIGAN" aria-pressed="false">USIGAN</button>
+        </div>
+      </div>
+      <div id="image-gallery"></div>
+    </section>
   </main>
   <input type="file" id="results-file" accept=".csv,text/csv" hidden>
   <div id="chart-tooltip" class="chart-tooltip" role="tooltip" hidden></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="image-dialog" class="image-dialog" aria-label="放大查看图像">
+    <button type="button" class="image-dialog-close" aria-label="关闭放大图">×</button>
+    <img alt="">
+    <p></p>
+  </dialog>
   <noscript><p class="noscript">请启用 JavaScript，以读取实验数据并展示模型对比图。</p></noscript>
 </body>
 </html>

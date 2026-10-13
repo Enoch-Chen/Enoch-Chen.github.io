@@ -15,6 +15,7 @@ const CHARTS = {
   tile: { label: "平铺图", hint: "模型 × 数据集，以色块和数值展示结果", footnote: "每列按当前显示的模型比较：深绿最优，浅绿次优，并列同级；其余为中性色，灰色「—」为缺失。" },
 };
 const COLORS = ["#50765b", "#a8be88", "#dbab81", "#acbfc8", "#9b91af", "#c4b96e", "#8bb9a8", "#ce9290"];
+const IMAGE_VERSIONS = ["MIST", "MIST_S01", "MIST_S02", "MIST_S03", "MIST_S04", "MIST_S05", "MIST_S06"];
 
 // CSV parsing, validation and export.
 function parseCSV(input) {
@@ -206,7 +207,8 @@ if (typeof document !== "undefined") {
   const $ = id => document.getElementById(id);
   const groupButtons = [...document.querySelectorAll("[data-group]")];
   const stainButtons = [...document.querySelectorAll("[data-stain]")];
-  const state = { rows: [], group: "mist-main", source: "", stain: "ER", metric: "fid", chart: "bar", hiddenSeries: new Set(), request: 0 };
+  const imageModelButtons = [...document.querySelectorAll("[data-image-model]")];
+  const state = { rows: [], group: "mist-main", source: "", stain: "ER", metric: "fid", chart: "bar", hiddenSeries: new Set(), request: 0, imageModel: "Baseline", imageSample: 0, examples: null, examplesError: "", gallerySignature: "" };
   let toastTimer;
   const empty = (title, description) => `<div class="empty-state"><strong>${escapeHTML(title)}</strong><p>${escapeHTML(description)}</p></div>`;
   const chartTooltip = $("chart-tooltip");
@@ -269,9 +271,67 @@ if (typeof document !== "undefined") {
     }
     $("comparison-chart").innerHTML = content;
   }
+  function renderGallery() {
+    const section = $("image-comparison");
+    section.hidden = state.group !== "mist-main";
+    if (section.hidden) return;
+    const signature = JSON.stringify([state.stain, state.imageModel, state.imageSample, state.examples, state.examplesError]);
+    if (signature === state.gallerySignature) return;
+    state.gallerySignature = signature;
+    const gallery = $("image-gallery");
+    if (!state.examples) {
+      gallery.innerHTML = empty("正在读取示例图", "");
+      return;
+    }
+    if (state.examplesError) {
+      gallery.innerHTML = empty("示例图读取失败", state.examplesError);
+      return;
+    }
+    if (!state.examples.length) {
+      gallery.innerHTML = empty("暂无示例图", "图像清单中还没有样本。");
+      return;
+    }
+    const sample = state.examples[state.imageSample] || state.examples[0];
+    const base = `./data/results_MIST/${encodeURIComponent(sample.id)}/`;
+    const imageCell = (label, filename, context) => {
+      const title = `${sample.id} · ${context} · ${label}`;
+      return `<div class="image-cell"><span>${escapeHTML(label)}</span><button type="button" class="image-zoom" data-image-label="${escapeHTML(title)}" aria-label="放大查看 ${escapeHTML(title)}"><img src="${escapeHTML(base + filename)}" alt="${escapeHTML(title)}" loading="lazy" decoding="async" width="1024" height="1024"></button></div>`;
+    };
+    const stainCounts = {};
+    const sampleTabs = state.examples.map((example, index) => {
+      stainCounts[example.stain] = (stainCounts[example.stain] || 0) + 1;
+      return `<button type="button" data-image-sample="${index}" class="${example === sample ? 'selected' : ''}" aria-pressed="${example === sample}">${example.stain} ${stainCounts[example.stain]}</button>`;
+    }).join("");
+    const reference = `<div class="image-machine"><h3>参考</h3>${imageCell("H&E", "HE.jpg", "参考")}${imageCell("真实 IHC", "IHC.jpg", "参考")}</div>`;
+    const versions = IMAGE_VERSIONS.map(version => {
+      const label = version === "MIST" ? "MIST" : version.slice(5);
+      const he = version === "MIST" ? "HE.jpg" : `HE_${version}.jpg`;
+      return `<div class="image-machine"><h3>${label}</h3>${imageCell("H&E 输入", he, version)}${imageCell(`${state.imageModel} 生成`, `outputs/${state.imageModel}_${version}.png`, version)}</div>`;
+    }).join("");
+    gallery.innerHTML = `<div class="image-sample-heading"><div class="image-samples" role="group" aria-label="选择样例">${sampleTabs}</div><span>${escapeHTML(sample.id)}</span></div><div class="image-scroll"><div class="image-grid">${reference}${versions}</div></div>`;
+  }
   function render() {
     renderComparison();
+    renderGallery();
     $("export-results").disabled = !selectedRows().length;
+  }
+
+  async function loadExamples() {
+    try {
+      const path = "data/results_MIST/examples.json";
+      const response = await fetch(new URL(path, document.baseURI));
+      if (!response.ok) throw new Error(`${path} 读取失败（HTTP ${response.status}）。`);
+      const examples = await response.json();
+      if (!Array.isArray(examples) || examples.some(example => !/^[\w-]+$/.test(example.id) || !["ER", "PR", "HER2", "KI67"].includes(example.stain))) {
+        throw new Error("示例图清单格式错误。");
+      }
+      state.examples = examples;
+      state.imageSample = Math.max(0, examples.findIndex(example => example.stain === state.stain));
+    } catch (error) {
+      state.examples = [];
+      state.examplesError = error.message;
+    }
+    renderGallery();
   }
 
   async function loadGroup(group) {
@@ -338,9 +398,50 @@ if (typeof document !== "undefined") {
     // Keep keyboard focus on the same legend control after its markup is refreshed.
     [...$("comparison-legend").querySelectorAll("button[data-series]")].find(item => item.dataset.series === key)?.focus({ preventScroll: true });
   });
+  imageModelButtons.forEach(button => button.addEventListener("click", () => {
+    state.imageModel = button.dataset.imageModel;
+    setSelected(imageModelButtons, button);
+    renderGallery();
+  }));
+  const imageDialog = $("image-dialog");
+  let imageScrollY = 0, imageScroller = null, imageScrollLeft = 0;
+  function restoreImageScroll() {
+    window.scrollTo(0, imageScrollY);
+    if (imageScroller) imageScroller.scrollLeft = imageScrollLeft;
+  }
+  $("image-gallery").addEventListener("click", event => {
+    const sampleButton = event.target.closest("button[data-image-sample]");
+    if (sampleButton) {
+      state.imageSample = Number(sampleButton.dataset.imageSample);
+      const sample = state.examples?.[state.imageSample];
+      if (sample && sample.stain !== state.stain) {
+        state.stain = sample.stain;
+        setSelected(stainButtons, stainButtons.find(button => button.dataset.stain === state.stain));
+        updateSourceControls();
+        render();
+      } else renderGallery();
+      $("image-gallery").querySelector(`button[data-image-sample="${state.imageSample}"]`)?.focus({ preventScroll: true });
+      return;
+    }
+    const button = event.target.closest("button.image-zoom");
+    if (!button) return;
+    const image = button.querySelector("img");
+    imageDialog.querySelector("img").src = image.src;
+    imageDialog.querySelector("img").alt = image.alt;
+    imageDialog.querySelector("p").textContent = button.dataset.imageLabel;
+    imageScrollY = window.scrollY;
+    imageScroller = button.closest(".image-scroll");
+    imageScrollLeft = imageScroller?.scrollLeft || 0;
+    imageDialog.showModal();
+    requestAnimationFrame(restoreImageScroll);
+  });
+  imageDialog.querySelector("button").addEventListener("click", () => imageDialog.close());
+  imageDialog.addEventListener("click", event => { if (event.target === imageDialog) imageDialog.close(); });
+  imageDialog.addEventListener("close", () => requestAnimationFrame(restoreImageScroll));
   groupButtons.forEach(button => button.addEventListener("click", () => loadGroup(button.dataset.group)));
   stainButtons.forEach(button => button.addEventListener("click", () => {
     state.stain = button.dataset.stain;
+    state.imageSample = Math.max(0, state.examples?.findIndex(example => example.stain === state.stain) ?? 0);
     setSelected(stainButtons, button);
     updateSourceControls(); render();
   }));
@@ -357,4 +458,5 @@ if (typeof document !== "undefined") {
     toast(`已导出当前显示模型的 ${rows.length} 条结果。`);
   });
   loadGroup("mist-main");
+  loadExamples();
 }
